@@ -1,0 +1,32 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: srt-review:latest
+    container_name: srt-review
+    ports:
+      # 宿主机端口:容器端口 —— 浏览器访问 http://localhost:${APP_PORT:-4000}
+      - "${APP_PORT:-4000}:4000"
+    environment:
+      # JWT 签名密钥：生产部署请务必修改
+      JWT_SECRET: ${JWT_SECRET:-please-change-me-in-production}
+      # SQLite 数据文件位置（容器内），由命名卷持久化
+      DB_PATH: /app/server/data/app.db
+      # 首次启动初始化的本地账号（users 表已有数据时不会覆盖）
+      EDITOR_USERNAME: ${EDITOR_USERNAME:-editor}
+      EDITOR_PASSWORD: ${EDITOR_PASSWORD:-editor123}
+      REVIEWER_USERNAME: ${REVIEWER_USERNAME:-reviewer}
+      REVIEWER_PASSWORD: ${REVIEWER_PASSWORD:-reviewer123}
+    volumes:
+      - srt-data:/app/server/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  srt-data:
